@@ -23,21 +23,9 @@ kit = ServoKit(channels = 16)
 
 
 
-#kit.servo[0].angle = 40
-#kit.servo[1].angle = 0
-#kit.servo[2].angle = 100
-#kit.servo[3].angle = 40
-#kit.servo[4].angle = 0
-#kit.servo[5].angle = 100
-#kit.servo[6].angle = 160
-#kit.servo[7].angle = 0
-#kit.servo[8].angle = 120
-#kit.servo[9].angle = 90
-#kit.servo[10].angle = 0
-#kit.servo[11].angle s= 120
 startAngles = [70, 100, 140, 90, 80, 150, 90, 110, 140, 150, 130, 130]
 
-
+# function to get distance using ultrasonic sensor
 def getDistance():
     GPIO.output(TRIG, False)
 
@@ -62,12 +50,14 @@ def getDistance():
     print("Distance: ", distance, "cm")
     return distance
 prevDistance = getDistance()
+# calculate reward using getDistance method
 def getReward():
     global prevDistance
     currDistance = getDistance()
     reward = currDistance - prevDistance
     prevDistance = currDistance
     return reward - 1
+# create initial q matrix
 vals = []
 nums = [-0.5, 0, 0.5]
 for i in nums:
@@ -105,7 +95,7 @@ qmatrix = np.load("test.npy")
 print("qmatrix loaded")
 state = [0] * 12
 stateIndex = 0
-
+# intial sstate
 def setToInitialState():
     kit.servo[10].set_pulse_width_range(500, 3000)
     kit.servo[8].set_pulse_width_range(500, 3000)
@@ -116,11 +106,13 @@ def setToInitialState():
         kit.servo[11].angle = angle
         i2c_mutex.release()
 
+# get initial state
 def setState():
     for idx, elem in enumerate(vals):
         if(state[0] == elem[0] and state[1] == elem[1] and state[2] == elem[2] and state[3] == elem[3] and state[4] == elem[4] and state[5] == elem[5] and state[6] == elem[6]and state[7] == elem[7]and state[8] == elem[8] and state[9] == elem[9]and state[10] == elem[10] and state[11] == elem[11]):
             stateIndex = idx
             break
+# perform action
 def performAction(actionIndex):
     for servoIndex, move in enumerate(actions[actionIndex]):
         state[servoIndex] += actions[actionIndex][servoIndex]
@@ -144,6 +136,7 @@ def performAction(actionIndex):
 reward = 0
 t = 0
 actionValue = actionIndex
+# main code
 for j in range(15):
     stateIndex = 0
     setToInitialState()
@@ -162,27 +155,29 @@ for j in range(15):
         for q in range(numOfStates):
             if qmatrix[actionValue][q] > qmax:
                 qmax = qmatrix[actionValue][q]
-        qmatrix[stateIndex][actionValue] =  (reward + (0.85 * qmax))
+        # update q value
+        qmatrix[stateIndex][actionValue] =  qmatrix[state][actionValue] + 0.2 *((reward + (0.85 * qmax)) - qmatrix[state][actionValue])
         stateIndex = actionValue
         print(j, " ", i)
     np.save("test", qmatrix)
     print("saved qmaatrix")
-for j in range(300):
-    stateIndex = 0
-    setToInitialState()
-    actionVal = actionIndex
-    qmax = -20000.0
-    for q in range(numOfStates):
-        if qmatrix[stateIndex][q] > qmax:
-            qmax = qmatrix[stateIndex][q]
-            actionValue = q
-    performAction(actionValue)
-    reward = getReward()
-    qmax = -20000.0
-    for q in range(numOfStates):
-        if qmatrix[actionValue][q] > qmax:
-            qmax = qmatrix[actionValue][q]
-    qmatrix[stateIndex][actionValue] =  qmatrix[stateIndex][actionValue] + 0.2 *((reward + (0.85 * qmax)) - qmatrix[stateIndex][actionValue])
-    print(i)
+# only for testing
+# for j in range(300):
+#     stateIndex = 0
+#     setToInitialState()
+#     actionVal = actionIndex
+#     qmax = -20000.0
+#     for q in range(numOfStates):
+#         if qmatrix[stateIndex][q] > qmax:
+#             qmax = qmatrix[stateIndex][q]
+#             actionValue = q
+#     performAction(actionValue)
+#     reward = getReward()
+#     qmax = -20000.0
+#     for q in range(numOfStates):
+#         if qmatrix[actionValue][q] > qmax:
+#             qmax = qmatrix[actionValue][q]
+#     qmatrix[stateIndex][actionValue] =  qmatrix[stateIndex][actionValue] + 0.2 *((reward + (0.85 * qmax)) - qmatrix[stateIndex][actionValue])
+#     print(i)
 
 
