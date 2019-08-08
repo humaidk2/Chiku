@@ -1,13 +1,15 @@
+#import libraries
 from adafruit_servokit import ServoKit
 
-
+# intialize servokit
 kit = ServoKit(channels = 16)
 
-
+# change ranges for 4 motors to get 0-180 for all motors
 kit.servo[10].set_pulse_width_range(500, 3000)
 kit.servo[8].set_pulse_width_range(500, 3000)
 kit.servo[5].set_pulse_width_range(500, 3000)
 kit.servo[2].set_pulse_width_range(500, 3000)
+# set all motors to standing position
 kit.servo[0].angle = 70 # bottom right
 kit.servo[1].angle = 100
 kit.servo[2].angle = 140
